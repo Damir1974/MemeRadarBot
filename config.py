@@ -1,3 +1,3 @@
-import os
-BOT_TOKEN = '8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w'
+TOKEN = "8067243807:AAH9Fek43sf5NCu6hDzi-j4HN4nxxxxxxxxx"  # ← вставь свой полный токен
+CHAT_ID = 956286581
 
