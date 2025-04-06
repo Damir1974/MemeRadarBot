@@ -1,4 +1,3 @@
 import os
+BOT_TOKEN = '8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w'
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_CHAT_ID = 956286581  # Твой Telegram chat_id
