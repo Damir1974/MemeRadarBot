@@ -7,72 +7,95 @@ from flask import Flask
 
 app = Flask(__name__)
 
-# === Telegram настройки ===
+# === Telegram ===
 TOKEN = '8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w'
 CHAT_ID = '956286581'
 bot = telegram.Bot(token=TOKEN)
 
-# === Уровни BTC и DOGE ===
-btc_levels = [78800, 90000, 95000, 100000, 150000]
-doge_levels = [0.14, 0.20, 0.25, 0.30]
+# === История цен для RSI, MACD, MA ===
+btc_history = []
 
-# === Состояние сигналов с буфером отката ===
-triggered = {
-    "btc": {},
-    "doge": {}
-}
-buffer_pct = 0.005  # 0.5%
-
-# === CoinGecko API ===
-def get_prices():
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,dogecoin&vs_currencies=usd"
-    try:
-        res = requests.get(url).json()
-        btc = res['bitcoin']['usd']
-        doge = res['dogecoin']['usd']
-        return btc, doge
-    except:
-        return None, None
-
-# === Катя отправляет сообщение ===
+# === Отправка сигнала ===
 def send_signal(msg):
-    timestamp = datetime.now().strftime("%H:%M:%S")
+    timestamp = datetime.now().strftime('%H:%M:%S')
     print(f"[{timestamp}] {msg}")
     bot.send_message(chat_id=CHAT_ID, text=f"⚠️ {msg}")
 
-# === Логика отслеживания ===
+# === Получение цены BTC ===
+def get_btc_price():
+    try:
+        url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
+        res = requests.get(url).json()
+        return res['bitcoin']['usd']
+    except:
+        return None
+
+# === Расчёты RSI, MACD, MA (простая эмуляция) ===
+def calculate_indicators(prices):
+    if len(prices) < 26:
+        return None, None, None
+
+    close = prices[-1]
+    ma10 = sum(prices[-10:]) / 10
+    ma50 = sum(prices[-50:]) / 50 if len(prices) >= 50 else None
+    ma200 = sum(prices[-200:]) / 200 if len(prices) >= 200 else None
+
+    # RSI
+    gains = [max(prices[i+1] - prices[i], 0) for i in range(-15, -1)]
+    losses = [abs(min(prices[i+1] - prices[i], 0)) for i in range(-15, -1)]
+    avg_gain = sum(gains) / len(gains)
+    avg_loss = sum(losses) / len(losses)
+    rs = avg_gain / avg_loss if avg_loss != 0 else 0
+    rsi = 100 - (100 / (1 + rs)) if avg_loss != 0 else 100
+
+    # MACD (разница между EMA12 и EMA26, примитивная)
+    ema12 = sum(prices[-12:]) / 12
+    ema26 = sum(prices[-26:]) / 26
+    macd = ema12 - ema26
+
+    return round(rsi, 2), round(macd, 2), (ma10, ma50, ma200)
+
+# === Главный мониторинг ===
 def monitor():
     send_signal("Система на связи. Катя следит.")
     while True:
-        btc_price, doge_price = get_prices()
-        if not btc_price or not doge_price:
+        price = get_btc_price()
+        if not price:
             time.sleep(30)
             continue
 
-        # === BTC ===
-        for lvl in btc_levels:
-            buf = lvl * buffer_pct
-            if btc_price >= lvl and not triggered["btc"].get(lvl, False):
-                send_signal(f"BTC достиг уровня ${lvl:,}")
-                triggered["btc"][lvl] = True
-            elif btc_price < lvl - buf and triggered["btc"].get(lvl, False):
-                triggered["btc"][lvl] = False
+        btc_history.append(price)
+        if len(btc_history) > 300:
+            btc_history.pop(0)
 
-        # === DOGE ===
-        for lvl in doge_levels:
-            buf = lvl * buffer_pct
-            if doge_price >= lvl and not triggered["doge"].get(lvl, False):
-                send_signal(f"DOGE достиг уровня ${lvl}")
-                triggered["doge"][lvl] = True
-            elif doge_price < lvl - buf and triggered["doge"].get(lvl, False):
-                triggered["doge"][lvl] = False
+        indicators = calculate_indicators(btc_history)
+        if indicators:
+            rsi, macd, (ma10, ma50, ma200) = indicators
 
-        time.sleep(60)
+            # === RSI ===
+            if rsi < 30:
+                send_signal(f"RSI = {rsi} — рынок перепродан. Возможен разворот вверх.")
+            elif rsi > 70:
+                send_signal(f"RSI = {rsi} — рынок перегрет. Возможен откат.")
+
+            # === MACD ===
+            if macd > 0:
+                send_signal(f"MACD = {macd} — бычий сигнал.")
+            elif macd < 0:
+                send_signal(f"MACD = {macd} — медвежье давление.")
+
+            # === MA пересечения (упрощённо) ===
+            if ma10 and ma50 and ma10 > ma50:
+                send_signal("MA(10) пересёк MA(50) вверх — краткосрочный бычий сигнал.")
+            elif ma10 and ma50 and ma10 < ma50:
+                send_signal("MA(10) ниже MA(50) — краткосрочное давление вниз.")
+
+        time.sleep(300)  # анализ каждые 5 минут
 
 # === Flask-заглушка для Render ===
 @app.route('/')
 def index():
-    return "Катя онлайн. Бот работает."
+    return "Катя работает. Анализ ведётся."
 
 if __name__ == '__main__':
     t = threading.Thread(target=monitor)
