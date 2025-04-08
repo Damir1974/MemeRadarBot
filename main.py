@@ -6,26 +6,22 @@ from flask import Flask
 import telebot
 from telebot import types
 
-# === Telegram Bot ===
 TOKEN = '8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w'
 CHAT_ID = '956286581'
 bot = telebot.TeleBot(TOKEN)
-
 app = Flask(__name__)
 
 btc_levels = [78800, 90000, 95000, 100000, 150000]
 doge_levels = [0.14, 0.20, 0.25, 0.30]
 triggered = {"btc": {}, "doge": {}}
-buffer_pct = 0.005
 btc_history = []
+buffer_pct = 0.005
 
-# === Отправка сигналов ===
 def send_signal(text):
     timestamp = datetime.now().strftime('%H:%M:%S')
     print(f"[{timestamp}] {text}")
     bot.send_message(CHAT_ID, f"⚠️ {text}")
 
-# === Получение цен ===
 def get_prices():
     try:
         url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,dogecoin&vs_currencies=usd"
@@ -34,12 +30,10 @@ def get_prices():
     except:
         return None, None
 
-# === Тех. анализ (эмуляция) ===
 def calculate_indicators(prices):
     if len(prices) < 26:
-        return None, None, None
+        return None
 
-    close = prices[-1]
     ma10 = sum(prices[-10:]) / 10
     ma50 = sum(prices[-50:]) / 50 if len(prices) >= 50 else None
     ma200 = sum(prices[-200:]) / 200 if len(prices) >= 200 else None
@@ -57,7 +51,6 @@ def calculate_indicators(prices):
 
     return round(rsi, 2), round(macd, 2), (ma10, ma50, ma200)
 
-# === Главная логика ===
 def monitor():
     send_signal("Система на связи. Катя следит.")
     while True:
@@ -91,7 +84,7 @@ def monitor():
             rsi, macd, (ma10, ma50, ma200) = indicators
 
             if rsi < 30:
-                send_signal(f"RSI = {rsi} — рынок перепродан. Возможен разворот вверх.")
+                send_signal(f"RSI = {rsi} — рынок перепродан. Возможен разворот.")
             elif rsi > 70:
                 send_signal(f"RSI = {rsi} — рынок перегрет. Возможен откат.")
 
@@ -100,14 +93,14 @@ def monitor():
             elif macd < 0:
                 send_signal(f"MACD = {macd} — медвежий сигнал.")
 
-            if ma10 and ma50 and ma10 > ma50:
-                send_signal("MA(10) пересёк MA(50) вверх — краткосрочный бычий сигнал.")
-            elif ma10 and ma50 and ma10 < ma50:
-                send_signal("MA(10) ниже MA(50) — краткосрочное давление вниз.")
+            if ma10 and ma50:
+                if ma10 > ma50:
+                    send_signal("MA(10) пересёк MA(50) вверх — бычий сигнал.")
+                elif ma10 < ma50:
+                    send_signal("MA(10) ниже MA(50) — давление вниз.")
 
         time.sleep(300)
 
-# === Кнопки ===
 @bot.message_handler(commands=["start"])
 def start(message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -122,7 +115,6 @@ def handle_memecoins(message):
 def handle_alts(message):
     bot.send_message(message.chat.id, "Актуальные альты: ETH, SOL, LINK, RNDR, ARB, SUI")
 
-# === Flask-заглушка ===
 @app.route('/')
 def index():
     return "Катя онлайн. Бот работает."
