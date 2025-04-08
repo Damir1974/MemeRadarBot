@@ -1,58 +1,80 @@
 import requests
 import time
+import threading
 import telegram
 from datetime import datetime
+from flask import Flask
 
-# === Настройки ===
+app = Flask(__name__)
+
+# === Telegram настройки ===
 TOKEN = '8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w'
-CHAT_ID = '956286581'  # @HuiDungan
+CHAT_ID = '956286581'
+bot = telegram.Bot(token=TOKEN)
 
+# === Уровни BTC и DOGE ===
 btc_levels = [78800, 90000, 95000, 100000, 150000]
 doge_levels = [0.14, 0.20, 0.25, 0.30]
 
-headers = {"accept": "application/json"}
-bot = telegram.Bot(token=TOKEN)
-
+# === Состояние сигналов с буфером отката ===
 triggered = {
-    "btc": set(),
-    "doge": set()
+    "btc": {},
+    "doge": {}
 }
+buffer_pct = 0.005  # 0.5%
 
-def send_signal(text):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {text}")
-    bot.send_message(chat_id=CHAT_ID, text=f"⚠️ {text}")
-
+# === CoinGecko API ===
 def get_prices():
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin%2Cdogecoin&vs_currencies=usd"
+    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,dogecoin&vs_currencies=usd"
     try:
-        res = requests.get(url, headers=headers).json()
-        btc = res["bitcoin"]["usd"]
-        doge = res["dogecoin"]["usd"]
+        res = requests.get(url).json()
+        btc = res['bitcoin']['usd']
+        doge = res['dogecoin']['usd']
         return btc, doge
-    except Exception as e:
-        print("Ошибка при получении цен:", e)
+    except:
         return None, None
 
-def run():
+# === Катя отправляет сообщение ===
+def send_signal(msg):
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {msg}")
+    bot.send_message(chat_id=CHAT_ID, text=f"⚠️ {msg}")
+
+# === Логика отслеживания ===
+def monitor():
+    send_signal("Система на связи. Катя следит.")
     while True:
         btc_price, doge_price = get_prices()
-        if btc_price and doge_price:
-            for lvl in btc_levels:
-                if btc_price >= lvl and lvl not in triggered["btc"]:
-                    send_signal(f"BTC достиг уровня ${lvl:,}")
-                    triggered["btc"].add(lvl)
-                elif btc_price < lvl and lvl in triggered["btc"]:
-                    triggered["btc"].remove(lvl)
+        if not btc_price or not doge_price:
+            time.sleep(30)
+            continue
 
-            for lvl in doge_levels:
-                if doge_price >= lvl and lvl not in triggered["doge"]:
-                    send_signal(f"DOGE достиг уровня ${lvl}")
-                    triggered["doge"].add(lvl)
-                elif doge_price < lvl and lvl in triggered["doge"]:
-                    triggered["doge"].remove(lvl)
+        # === BTC ===
+        for lvl in btc_levels:
+            buf = lvl * buffer_pct
+            if btc_price >= lvl and not triggered["btc"].get(lvl, False):
+                send_signal(f"BTC достиг уровня ${lvl:,}")
+                triggered["btc"][lvl] = True
+            elif btc_price < lvl - buf and triggered["btc"].get(lvl, False):
+                triggered["btc"][lvl] = False
+
+        # === DOGE ===
+        for lvl in doge_levels:
+            buf = lvl * buffer_pct
+            if doge_price >= lvl and not triggered["doge"].get(lvl, False):
+                send_signal(f"DOGE достиг уровня ${lvl}")
+                triggered["doge"][lvl] = True
+            elif doge_price < lvl - buf and triggered["doge"].get(lvl, False):
+                triggered["doge"][lvl] = False
 
         time.sleep(60)
 
-if __name__ == "__main__":
-    send_signal("Система на связи. Катя следит.")
-    run()
+# === Flask-заглушка для Render ===
+@app.route('/')
+def index():
+    return "Катя онлайн. Бот работает."
+
+if __name__ == '__main__':
+    t = threading.Thread(target=monitor)
+    t.start()
+    app.run(host='0.0.0.0', port=10000)
