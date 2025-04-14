@@ -1,0 +1,15 @@
+
+services:
+  - type: worker
+    name: memeradarbot
+    runtime: python
+    repo: https://github.com/katya-ai/MemeRadarBot
+    branch: main
+    plan: free
+    envVars:
+      - key: API_TOKEN
+        value: "ТВОЙ_ТОКЕН_ОТ_BOTFATHER"
+      - key: CHAT_ID
+        value: "956286581"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
