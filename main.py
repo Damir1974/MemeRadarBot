@@ -9,7 +9,8 @@ CHAT_ID = 956286581
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
+await dp.start_polling(bot)
 
 async def run_radar():
     while True:
