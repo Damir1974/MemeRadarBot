@@ -24,7 +24,6 @@ async def scan_new_memecoins():
         if any(keyword in name or keyword in symbol for keyword in KEYWORDS):
             last_seen_tokens.add(token_id)
             url = pair.get("url", "")
-            found.append(f"Найден мемкоин:
-{name.upper()} ({symbol})
-{url}")
-    return "\n\n".join(found)
+            found.append(f"""Найден мемкоин:
+{name.upper()} ({symbol.upper()})
+{url}""")
