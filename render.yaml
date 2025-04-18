@@ -7,7 +7,7 @@ services:
     plan: free
     envVars:
       - key: API_TOKEN
-        value: "8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w"
+        value: "ТВОЙ_ТОКЕН_ОТ_BOTFATHER"
       - key: CHAT_ID
         value: "956286581"
     buildCommand: pip install -r requirements.txt

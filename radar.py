@@ -1,8 +1,8 @@
 import aiohttp
 
 KEYWORDS = [
-    "ghibli", "elon", "doge", "meme", "cat", "pepe", "shiba", "inu", "cz",
-    "banana", "ai", "sol", "baby", "moon", "degen", "wizard", "frog"
+    "ghibli", "elon", "doge", "meme", "cat", "pepe", "shiba", "inu",
+    "cz", "ai", "sol", "baby", "moon", "degen", "wizard", "banana"
 ]
 
 last_seen_tokens = set()
@@ -12,21 +12,19 @@ async def scan_new_memecoins():
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
             data = await resp.json()
-
     pairs = data.get("pairs", [])
     found = []
 
     for pair in pairs:
-        name = pair.get("baseToken", {}).get("name", "")
-        symbol = pair.get("baseToken", {}).get("symbol", "")
-        url = pair.get("url", "")
+        name = pair.get("baseToken", {}).get("name", "").lower()
+        symbol = pair.get("baseToken", {}).get("symbol", "").lower()
         token_id = f"{name}{symbol}"
-
         if token_id in last_seen_tokens:
             continue
-
-        if any(keyword in name.lower() or keyword in symbol.lower() for keyword in KEYWORDS):
+        if any(keyword in name or keyword in symbol for keyword in KEYWORDS):
             last_seen_tokens.add(token_id)
-            found.append(f"Найден мемкоин:\n{name.upper()} ({symbol})\n{url}")
-
+            url = pair.get("url", "")
+            found.append(f"Найден мемкоин:
+{name.upper()} ({symbol})
+{url}")
     return "\n\n".join(found)
