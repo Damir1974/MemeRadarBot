@@ -6,7 +6,7 @@ from radar import scan_new_memecoins
 from keep_alive import keep_alive
 
 API_TOKEN = os.getenv("API_TOKEN")
-CHAT_ID = int(os.getenv("CHAT_ID"))
+CHAT_ID = int(os.getenv("CHAT_ID", "956286581"))
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
