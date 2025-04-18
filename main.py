@@ -1,16 +1,14 @@
-
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher
 from radar import scan_new_memecoins
 
 API_TOKEN = "8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w"
-CHAT_ID = 956286581
+CHAT_ID = "956286581"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
-await dp.start_polling(bot)
 
 async def run_radar():
     while True:
@@ -24,7 +22,7 @@ async def run_radar():
 
 async def main():
     asyncio.create_task(run_radar())
-    await dp.start_polling()
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
