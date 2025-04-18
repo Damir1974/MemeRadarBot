@@ -4,9 +4,8 @@ import os
 from aiogram import Bot, Dispatcher
 from radar import scan_new_memecoins
 
-API_TOKEN = os.getenv("API_TOKEN")
-CHAT_ID = int(os.getenv("CHAT_ID"))
-
+API_TOKEN = os.getenv("API_TOKEN" )
+CHAT_ID = int(os.getenv("CHAT_ID", "0"))
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
