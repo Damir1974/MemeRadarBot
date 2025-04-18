@@ -1,10 +1,12 @@
 import asyncio
 import logging
+import os
 from aiogram import Bot, Dispatcher
 from radar import scan_new_memecoins
+from keep_alive import keep_alive
 
-API_TOKEN = "8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w"
-CHAT_ID = "956286581"
+API_TOKEN = os.getenv("API_TOKEN")
+CHAT_ID = int(os.getenv("CHAT_ID"))
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
@@ -18,9 +20,15 @@ async def run_radar():
                 await bot.send_message(CHAT_ID, message)
         except Exception as e:
             print(f"Ошибка в радаре: {e}")
-        await asyncio.sleep(300)  # каждые 5 минут
+        await asyncio.sleep(300)
+
+async def on_startup(bot):
+    # Удалим webhook, если он был установлен
+    await bot.delete_webhook()
 
 async def main():
+    keep_alive()
+    await on_startup(bot)
     asyncio.create_task(run_radar())
     await dp.start_polling(bot)
 
