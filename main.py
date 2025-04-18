@@ -4,7 +4,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from radar import scan_new_memecoins
 
-API_TOKEN = "ТВОЙ_ТОКЕН_СЮДА"
+API_TOKEN = 8067243807:AAH3xot3O0iEx_c1BSWPwAMrqf-0OZ-lB1w
 CHAT_ID = 956286581
 
 logging.basicConfig(level=logging.INFO)
